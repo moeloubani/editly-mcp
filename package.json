@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "postinstall": "node setup-venv.js && node postinstall.js",
+    "postinstall": "echo 'Skipping postinstall for local installation'",
     "setup": "node setup-venv.js",
     "diagnose": "node diagnose.js",
     "test": "node test-mcp-client.js",
@@ -59,9 +59,10 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.15.0",
+    "editly": "github:sailplan/editly",
     "which": "^4.0.0",
     "zod": "^3.25.73",
-    "editly": "github:sailplan/editly"
+    "zod-to-json-schema": "^3.24.6"
   },
   "peerDependencies": {
     "python": ">=3.8.0"

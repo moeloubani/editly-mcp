@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -397,27 +398,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'create_video',
         description: 'Create a video using Editly with full control over clips, layers, transitions, and effects',
-        inputSchema: CreateVideoSchema,
+        inputSchema: zodToJsonSchema(CreateVideoSchema),
       },
       {
         name: 'create_simple_video',
         description: 'Create a simple video from a list of video/image files with optional transitions and audio',
-        inputSchema: CreateSimpleVideoSchema,
+        inputSchema: zodToJsonSchema(CreateSimpleVideoSchema),
       },
       {
         name: 'list_transitions',
         description: 'List all available transition effects in Editly',
-        inputSchema: ListTransitionsSchema,
+        inputSchema: zodToJsonSchema(ListTransitionsSchema),
       },
       {
         name: 'list_fonts',
         description: 'List all available system fonts for text layers',
-        inputSchema: ListFontsSchema,
+        inputSchema: zodToJsonSchema(ListFontsSchema),
       },
       {
         name: 'system_diagnostic',
         description: 'Run comprehensive system diagnostic to check compatibility and dependencies',
-        inputSchema: z.object({}),
+        inputSchema: zodToJsonSchema(z.object({})),
       },
     ],
   };

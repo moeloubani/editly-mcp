@@ -1,0 +1,157 @@
+{
+  "outPath": "./output/ai-milking-cow-compilation.mp4",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "audioCodec": "aac",
+  "videoCodec": "libx264",
+  "defaults": {
+    "duration": 3,
+    "transition": {
+      "duration": 1,
+      "name": "random"
+    }
+  },
+  "clips": [
+    {
+      "duration": 4,
+      "layers": [
+        {
+          "type": "title",
+          "text": "AI Milking a Cow",
+          "fontPath": "Arial",
+          "fontSize": 120,
+          "fontColor": "#ffffff",
+          "backgroundColor": "#000000"
+        }
+      ],
+      "audioFilePath": "./source/audio/intro.mp3"
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow1-catching-milk.mp4"
+        },
+        {
+          "type": "title",
+          "text": "He is catching the milk",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "slideRight"
+      }
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow2-into-poop.mp4"
+        },
+        {
+          "type": "title",
+          "text": "Milking right into poop",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "fadeIn"
+      }
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow3-neck-milk.mp4"
+        },
+        {
+          "type": "title",
+          "text": "Looks like neck milk",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "wipeLeft"
+      }
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow4-more-neck-milk.mp4"
+        },
+        {
+          "type": "title",
+          "text": "More neck milk",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "slideUp"
+      }
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow5-behind-cow-milk.mp4"
+        },
+        {
+          "type": "title",
+          "text": "Is it coming from behind the cow?",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "circleOpen"
+      }
+    },
+    {
+      "layers": [
+        {
+          "type": "video",
+          "path": "./source/video/cow6-cow-is-empty.mp4"
+        },
+        {
+          "type": "title",
+          "text": "Almost there, but the poor cow is on empty",
+          "fontPath": "Arial",
+          "fontSize": 60,
+          "fontColor": "#ffffff",
+          "backgroundColor": "rgba(0,0,0,0.7)",
+          "position": "top"
+        }
+      ],
+      "transition": {
+        "duration": 1,
+        "name": "fadeOut"
+      }
+    }
+  ]
+}
