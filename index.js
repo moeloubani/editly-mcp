@@ -255,7 +255,7 @@ async function executeEditly(config) {
     try {
       return await executeEditlyWithConfig(config, configPath);
     } catch (complexError) {
-      console.log('Complex config failed, trying command line approach...');
+      // Complex config failed, trying command line approach
       return await executeEditlyCommandLine(config);
     }
   } catch (error) {
@@ -357,18 +357,28 @@ async function executeEditlyCommandLine(config) {
     args.push('--loop-audio');
   }
   
-  console.log('🎬 MCP Server executing editly command...');
-  console.log('Command:', args.slice(0, 3).join(' '), '+ options');
+  // MCP Server executing editly command
   
   return new Promise((resolve, reject) => {
-    const spawnOptions = { ...getSpawnOptions(), stdio: 'inherit' };
+    const spawnOptions = { ...getSpawnOptions(), stdio: 'pipe' };
     const editlyProcess = spawn(args[0], args.slice(1), spawnOptions);
+    
+    let stdout = '';
+    let stderr = '';
+    
+    editlyProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    editlyProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
     
     editlyProcess.on('close', (code) => {
       if (code === 0) {
-        resolve({ success: true, output: 'MCP Server command line execution completed' });
+        resolve({ success: true, output: stdout || 'MCP Server command line execution completed' });
       } else {
-        reject(new Error(`MCP Server editly execution failed with code ${code}`));
+        reject(new Error(`MCP Server editly execution failed with code ${code}: ${stderr}`));
       }
     });
     
@@ -689,7 +699,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Editly MCP server started');
+  // Editly MCP server started - log to stderr to avoid interfering with JSON-RPC
 }
 
 main().catch(console.error);
