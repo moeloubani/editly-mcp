@@ -272,7 +272,7 @@ async function executeEditlyWithConfig(config, configPath) {
   
   return new Promise((resolve, reject) => {
     const spawnOptions = getSpawnOptions();
-    const editlyProcess = spawn('npx', ['editly', configPath], spawnOptions);
+    const editlyProcess = spawn('editly', [configPath], spawnOptions);
     
     let stdout = '';
     let stderr = '';
@@ -328,8 +328,8 @@ async function executeEditlyCommandLine(config) {
     }
   }
   
-  // Build command line arguments with proper quoting
-  const args = ['npx', 'editly'];
+  // Build command line arguments - use global editly installation
+  const args = ['editly'];
   
   // Add clips with proper handling
   clips.forEach(clip => {
@@ -361,7 +361,7 @@ async function executeEditlyCommandLine(config) {
   
   return new Promise((resolve, reject) => {
     const spawnOptions = { ...getSpawnOptions(), stdio: 'pipe' };
-    const editlyProcess = spawn(args[0], args.slice(1), spawnOptions);
+    const editlyProcess = spawn('editly', args.slice(1), spawnOptions);
     
     let stdout = '';
     let stderr = '';
