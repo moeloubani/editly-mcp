@@ -1,0 +1,42 @@
+# Test files and examples
+test-*.js
+demo-*.js
+create-*.js
+direct-*.js
+simple-*.js
+*.test.js
+
+# Development files
+cow/
+output/
+.venv/
+temp-*.json
+*config*.json
+
+# Build artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Temporary files
+tmp/
+temp/
+
+# Setup and diagnostic files
+.editly-mcp-setup.json
+system-diagnostic.txt

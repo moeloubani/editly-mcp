@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "editly": {
+      "command": "node",
+      "args": ["index.js"],
+      "cwd": "/Users/moe/Dev/editly-mcp"
+    }
+  }
+}
