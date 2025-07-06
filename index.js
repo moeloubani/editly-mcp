@@ -276,6 +276,22 @@ async function executeEditlyWithConfig(config, configPath) {
     
     let stdout = '';
     let stderr = '';
+    let resolved = false;
+    
+    // Set a timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        editlyProcess.kill('SIGTERM');
+        fs.unlink(configPath).catch(() => {});
+        reject(new Error('Editly process timed out after 300 seconds'));
+      }
+    }, 300000); // 5 minutes timeout
+    
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      fs.unlink(configPath).catch(() => {});
+    };
     
     editlyProcess.stdout.on('data', (data) => {
       stdout += data.toString();
@@ -286,19 +302,24 @@ async function executeEditlyWithConfig(config, configPath) {
     });
     
     editlyProcess.on('close', (code) => {
-      // Clean up temp file
-      fs.unlink(configPath).catch(() => {});
-      
-      if (code === 0) {
-        resolve({ success: true, output: stdout });
-      } else {
-        reject(new Error(`Editly config failed with code ${code}: ${stderr}`));
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        
+        if (code === 0) {
+          resolve({ success: true, output: stdout });
+        } else {
+          reject(new Error(`Editly config failed with code ${code}: ${stderr}`));
+        }
       }
     });
     
     editlyProcess.on('error', (err) => {
-      fs.unlink(configPath).catch(() => {});
-      reject(err);
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        reject(err);
+      }
     });
   });
 }
@@ -365,6 +386,20 @@ async function executeEditlyCommandLine(config) {
     
     let stdout = '';
     let stderr = '';
+    let resolved = false;
+    
+    // Set a timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        editlyProcess.kill('SIGTERM');
+        reject(new Error('Editly command line process timed out after 300 seconds'));
+      }
+    }, 300000); // 5 minutes timeout
+    
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+    };
     
     editlyProcess.stdout.on('data', (data) => {
       stdout += data.toString();
@@ -375,15 +410,24 @@ async function executeEditlyCommandLine(config) {
     });
     
     editlyProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve({ success: true, output: stdout || 'MCP Server command line execution completed' });
-      } else {
-        reject(new Error(`MCP Server editly execution failed with code ${code}: ${stderr}`));
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        
+        if (code === 0) {
+          resolve({ success: true, output: stdout || 'MCP Server command line execution completed' });
+        } else {
+          reject(new Error(`MCP Server editly execution failed with code ${code}: ${stderr}`));
+        }
       }
     });
     
     editlyProcess.on('error', (err) => {
-      reject(err);
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        reject(err);
+      }
     });
   });
 }
@@ -700,6 +744,10 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // Editly MCP server started - log to stderr to avoid interfering with JSON-RPC
+  
+  // Handle cleanup on exit
+  process.on('SIGINT', () => process.exit(0));
+  process.on('SIGTERM', () => process.exit(0));
 }
 
 main().catch(console.error);
