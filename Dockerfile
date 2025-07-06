@@ -1,5 +1,5 @@
-# Multi-stage Dockerfile for editly-mcp
-# Provides a complete environment with all dependencies
+# Self-contained Dockerfile for editly-mcp
+# Provides a complete environment with all dependencies and fixed Node.js version
 
 FROM node:18-bullseye as builder
 

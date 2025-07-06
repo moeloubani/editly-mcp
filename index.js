@@ -22,6 +22,11 @@ import {
   getPlatformInstallInstructions,
   runSystemDiagnostic 
 } from './platform-utils.js';
+import { 
+  createSimpleVideoFFmpeg, 
+  createVideoWithTextFFmpeg,
+  checkFFmpegCompatibility 
+} from './ffmpeg-backend.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -229,40 +234,61 @@ async function checkEditlyAvailability() {
   return systemCheck.editly;
 }
 
-// Enhanced executeEditly with comprehensive error handling
+// Enhanced executeEditly with FFmpeg fallback for Node.js compatibility
 async function executeEditly(config) {
   const configPath = path.join(__dirname, 'temp-config.json');
   
   try {
-    // Comprehensive system check
-    const systemCheck = await checkSystemCompatibility();
-    
-    if (!systemCheck.compatible) {
-      const errorMessage = [
-        'System compatibility check failed:',
-        ...systemCheck.errors,
-        '',
-        'Recommendations:',
-        ...systemCheck.recommendations.slice(0, 5), // Limit to first 5 recommendations
-        '',
-        'Run "npm run diagnose" for detailed system information.'
-      ].join('\n');
-      
-      throw new Error(errorMessage);
-    }
-    
-    // Try complex config first, with fallback to simple command line
+    // Try editly first
     try {
       return await executeEditlyWithConfig(config, configPath);
-    } catch (complexError) {
-      // Complex config failed, trying command line approach
-      return await executeEditlyCommandLine(config);
+    } catch (editlyConfigError) {
+      // If config approach fails, try command line
+      try {
+        return await executeEditlyCommandLine(config);
+      } catch (editlyCommandError) {
+        // If both editly approaches fail (likely due to Node.js version issues), 
+        // fall back to FFmpeg direct approach
+        // Editly failed, falling back to FFmpeg backend
+        
+        // Check if this looks like a Node.js module version error
+        if (editlyCommandError.message.includes('NODE_MODULE_VERSION') || 
+            editlyCommandError.message.includes('was compiled against a different Node.js version')) {
+          
+          // Try FFmpeg fallback
+          const ffmpegCheck = await checkFFmpegCompatibility();
+          if (ffmpegCheck.available) {
+            // Determine which FFmpeg function to use based on config complexity
+            if (hasComplexLayers(config)) {
+              return await createVideoWithTextFFmpeg(config);
+            } else {
+              return await createSimpleVideoFFmpeg(config);
+            }
+          } else {
+            throw new Error(`Both Editly and FFmpeg backends failed. Editly error: ${editlyCommandError.message}. FFmpeg error: ${ffmpegCheck.error}`);
+          }
+        } else {
+          // Re-throw the original editly error if it's not a Node.js version issue
+          throw editlyCommandError;
+        }
+      }
     }
   } catch (error) {
     // Clean up temp file on error
     await fs.unlink(configPath).catch(() => {});
     throw error;
   }
+}
+
+// Helper function to determine if config has complex layers requiring special handling
+function hasComplexLayers(config) {
+  if (!config.clips) return false;
+  
+  return config.clips.some(clip => 
+    clip.layers && clip.layers.some(layer => 
+      layer.type === 'title' || layer.type === 'subtitle' || layer.type === 'canvas'
+    )
+  );
 }
 
 // Execute editly with JSON config
@@ -728,11 +754,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    // Ensure we always return a detailed error message
+    const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+    const errorStack = error.stack || 'No stack trace available';
+    
     return {
       content: [
         {
           type: 'text',
-          text: `Error: ${error.message}`,
+          text: `Error: ${errorMessage}\n\nStack trace:\n${errorStack}`,
         },
       ],
     };
