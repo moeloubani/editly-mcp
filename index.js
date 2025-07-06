@@ -182,14 +182,9 @@ async function checkSystemCompatibility() {
     recommendations: []
   };
 
-  // Check FFmpeg availability
+  // Check FFmpeg availability (for editly dependency)
   const ffmpegCheck = await checkFFmpegAvailability();
   results.ffmpeg = ffmpegCheck;
-  
-  if (!ffmpegCheck.available) {
-    results.errors.push('FFmpeg is required but not found');
-    results.recommendations.push(...ffmpegCheck.installInstructions);
-  }
 
   // Check editly availability
   try {
@@ -217,8 +212,8 @@ async function checkSystemCompatibility() {
     results.recommendations.push(...buildToolsCheck.recommendations);
   }
 
-  // Determine overall compatibility
-  results.compatible = results.editly.available && results.ffmpeg.available;
+  // Determine overall compatibility (editly is primary requirement)
+  results.compatible = results.editly.available;
 
   return results;
 }
