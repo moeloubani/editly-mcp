@@ -51,7 +51,6 @@
     "platform-utils.js",
     "postinstall.js",
     "diagnose.js",
-    "ffmpeg-backend.js",
     "install-windows.bat",
     "install-unix.sh",
     "README.md",

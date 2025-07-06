@@ -22,11 +22,6 @@ import {
   getPlatformInstallInstructions,
   runSystemDiagnostic 
 } from './platform-utils.js';
-import { 
-  createSimpleVideoFFmpeg, 
-  createVideoWithTextFFmpeg,
-  checkFFmpegCompatibility 
-} from './ffmpeg-backend.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -234,61 +229,111 @@ async function checkEditlyAvailability() {
   return systemCheck.editly;
 }
 
-// Enhanced executeEditly with FFmpeg fallback for Node.js compatibility
+// Check if editly is compatible with the current Node.js version
+async function checkEditlyNodeCompatibility() {
+  try {
+    // Try to run editly version to see if it works
+    const result = await new Promise((resolve, reject) => {
+      const spawnOptions = { ...getSpawnOptions(), stdio: 'pipe' };
+      const editlyProcess = spawn('editly', ['--version'], spawnOptions);
+      
+      let stdout = '';
+      let stderr = '';
+      
+      editlyProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      editlyProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      editlyProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve({ compatible: true, version: stdout.trim() });
+        } else {
+          // Check if it's a Node.js module version error
+          if (stderr.includes('NODE_MODULE_VERSION') || 
+              stderr.includes('was compiled against a different Node.js version')) {
+            
+            // Extract the Node.js version info from the error
+            const nodeVersionMatch = stderr.match(/NODE_MODULE_VERSION (\d+)/);
+            const recommendedVersion = nodeVersionMatch ? 
+              getNodeVersionFromModuleVersion(nodeVersionMatch[1]) : 
+              'v22.13.1'; // Default to the version editly was likely compiled with
+            
+            resolve({
+              compatible: false,
+              error: 'Editly was compiled with a different Node.js version',
+              recommendedVersion: recommendedVersion,
+              details: stderr
+            });
+          } else {
+            resolve({
+              compatible: false,
+              error: `Editly execution failed: ${stderr}`,
+              details: stderr
+            });
+          }
+        }
+      });
+      
+      editlyProcess.on('error', (err) => {
+        resolve({
+          compatible: false,
+          error: `Failed to run editly: ${err.message}`,
+          details: err.message
+        });
+      });
+    });
+    
+    return result;
+  } catch (error) {
+    return {
+      compatible: false,
+      error: `Error checking editly compatibility: ${error.message}`,
+      details: error.message
+    };
+  }
+}
+
+// Map NODE_MODULE_VERSION to Node.js version
+function getNodeVersionFromModuleVersion(moduleVersion) {
+  const versionMap = {
+    '127': 'v22.x',
+    '120': 'v21.x', 
+    '115': 'v20.x',
+    '108': 'v18.x',
+    '102': 'v16.x',
+    '93': 'v14.x'
+  };
+  
+  return versionMap[moduleVersion] || 'unknown';
+}
+
+// Enhanced executeEditly with Node.js version compatibility
 async function executeEditly(config) {
   const configPath = path.join(__dirname, 'temp-config.json');
   
   try {
-    // Try editly first
+    // Check if editly is available
+    const editlyCheck = await checkEditlyAvailability();
+    if (!editlyCheck.available) {
+      throw new Error(editlyCheck.error);
+    }
+    
+    // Try complex config first, with fallback to simple command line
     try {
       return await executeEditlyWithConfig(config, configPath);
-    } catch (editlyConfigError) {
-      // If config approach fails, try command line
-      try {
-        return await executeEditlyCommandLine(config);
-      } catch (editlyCommandError) {
-        // If both editly approaches fail (likely due to Node.js version issues), 
-        // fall back to FFmpeg direct approach
-        // Editly failed, falling back to FFmpeg backend
-        
-        // Check if this looks like a Node.js module version error
-        if (editlyCommandError.message.includes('NODE_MODULE_VERSION') || 
-            editlyCommandError.message.includes('was compiled against a different Node.js version')) {
-          
-          // Try FFmpeg fallback
-          const ffmpegCheck = await checkFFmpegCompatibility();
-          if (ffmpegCheck.available) {
-            // Determine which FFmpeg function to use based on config complexity
-            if (hasComplexLayers(config)) {
-              return await createVideoWithTextFFmpeg(config);
-            } else {
-              return await createSimpleVideoFFmpeg(config);
-            }
-          } else {
-            throw new Error(`Both Editly and FFmpeg backends failed. Editly error: ${editlyCommandError.message}. FFmpeg error: ${ffmpegCheck.error}`);
-          }
-        } else {
-          // Re-throw the original editly error if it's not a Node.js version issue
-          throw editlyCommandError;
-        }
-      }
+    } catch (complexError) {
+      // Complex config failed, trying command line approach
+      return await executeEditlyCommandLine(config);
     }
   } catch (error) {
     // Clean up temp file on error
     await fs.unlink(configPath).catch(() => {});
     throw error;
   }
-}
-
-// Helper function to determine if config has complex layers requiring special handling
-function hasComplexLayers(config) {
-  if (!config.clips) return false;
-  
-  return config.clips.some(clip => 
-    clip.layers && clip.layers.some(layer => 
-      layer.type === 'title' || layer.type === 'subtitle' || layer.type === 'canvas'
-    )
-  );
 }
 
 // Execute editly with JSON config
@@ -653,16 +698,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const systemCheck = await checkSystemCompatibility();
         const installInstructions = getPlatformInstallInstructions();
         
+        // Check Node.js version compatibility with editly
+        const nodeVersion = process.version;
+        const editlyNodeCompatibility = await checkEditlyNodeCompatibility();
+        
         let diagnostic = [
-          '🔍 System Diagnostic Report',
+          '🔍 System Diagnostic Report - Editly MCP',
           '=' .repeat(40),
           '',
           `Platform: ${systemCheck.buildTools.platform}`,
+          `Node.js Version: ${nodeVersion}`,
           `FFmpeg: ${systemCheck.ffmpeg.available ? '✅ Available' : '❌ Missing'}`,
           `Editly: ${systemCheck.editly.available ? '✅ Available' : '❌ Missing'}`,
-          `Overall Compatible: ${systemCheck.compatible ? '✅ Yes' : '❌ No'}`,
+          `Editly-Node Compatibility: ${editlyNodeCompatibility.compatible ? '✅ Compatible' : '❌ Incompatible'}`,
+          `Overall Compatible: ${systemCheck.compatible && editlyNodeCompatibility.compatible ? '✅ Yes' : '❌ No'}`,
           ''
         ];
+        
+        if (!editlyNodeCompatibility.compatible) {
+          diagnostic.push('⚠️ Node.js Version Mismatch Detected:');
+          diagnostic.push(`   ${editlyNodeCompatibility.error}`);
+          diagnostic.push('');
+          diagnostic.push('🔧 To fix this editly-specific issue:');
+          diagnostic.push(`   1. Use Node.js ${editlyNodeCompatibility.recommendedVersion} (the version editly was compiled with)`);
+          diagnostic.push('   2. Or rebuild editly for your current Node.js version:');
+          diagnostic.push('      npm uninstall -g editly');
+          diagnostic.push('      npm install -g github:sailplan/editly');
+          diagnostic.push('   3. Or use nvm to switch Node.js versions:');
+          diagnostic.push(`      nvm use ${editlyNodeCompatibility.recommendedVersion}`);
+          diagnostic.push('');
+        }
         
         if (systemCheck.errors.length > 0) {
           diagnostic.push('❌ Issues Found:');
